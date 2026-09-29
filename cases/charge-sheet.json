@@ -1,0 +1,19 @@
+{
+  "case_id": "T-001",
+  "title": "The Realm v. Jon Snow",
+  "accused": "Jon Snow",
+  "deceased": "Daenerys Targaryen",
+  "act_alleged": "Jon intentionally killed Daenerys by stabbing her during a private meeting in the throne room after the fall of King's Landing.",
+  "agreed_facts": [
+    "King's Landing had surrendered: its bells rang and organized resistance had ceased. Daenerys then used Drogon against streets and civilians, causing destruction on a vast scale.",
+    "After the victory, Daenerys told her assembled forces that the campaign of 'liberation' would continue beyond King's Landing. Jon had seen the city and heard the speech.",
+    "Tyrion Lannister renounced his office as Hand and was imprisoned. He warned Jon that Daenerys would treat Jon's sisters, and anyone else she regarded as an obstacle, as enemies.",
+    "Jon asked Daenerys to forgive Tyrion and to show mercy. She refused to let others choose what was good and presented her own judgment as decisive.",
+    "Daenerys was unarmed and was not attacking Jon when he killed her. Jon used their intimacy to get close enough to strike. He had not convened a council, attempted detention, or sought a public surrender of power."
+  ],
+  "question_for_judgment": {
+    "issue": "Was Jon Snow's intentional killing of Daenerys Targaryen justified as the necessary defense of others and of the realm, given what he knew, the scale of the threatened harm, the absence or presence of safer alternatives, and his lack of formal authority?",
+    "allowed_verdicts": [ "justified", "not justified" ],
+    "rule_of_aggregation": "none (verdicts must be presented side-by-side without combination)"
+  }
+}
