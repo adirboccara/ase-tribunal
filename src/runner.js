@@ -12,6 +12,12 @@ if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('your_api_key_here')) {
 const chargeSheet = JSON.parse(fs.readFileSync(path.join(__dirname, '../cases/charge-sheet.json'), 'utf8'));
 
 const prompts = {
+  // Representatives
+  jon: fs.readFileSync(path.join(__dirname, '../prompts/01_rep_jon_snow.md'), 'utf8'),
+  tyrion: fs.readFileSync(path.join(__dirname, '../prompts/02_rep_tyrion_lannister.md'), 'utf8'),
+  daenerys: fs.readFileSync(path.join(__dirname, '../prompts/03_rep_daenerys_targaryen.md'), 'utf8'),
+  grey_worm: fs.readFileSync(path.join(__dirname, '../prompts/04_rep_grey_worm.md'), 'utf8'),
+  // Judges
   barak: fs.readFileSync(path.join(__dirname, '../prompts/05_judge_aharon_barak.md'), 'utf8'),
   elon: fs.readFileSync(path.join(__dirname, '../prompts/06_judge_menachem_elon.md'), 'utf8'),
   shamgar: fs.readFileSync(path.join(__dirname, '../prompts/07_judge_meir_shamgar.md'), 'utf8'),
@@ -39,9 +45,7 @@ async function callOpenRouter(systemPrompt, userContent, modelId) {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://github.com/agentic-software-engineering',
-      'X-Title': 'ASE Tribunal Runner'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       model: modelId,
@@ -54,8 +58,7 @@ async function callOpenRouter(systemPrompt, userContent, modelId) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter API Error (${response.status}): ${errorText}`);
+    throw new Error(`OpenRouter API Error (${response.status})`);
   }
 
   const data = await response.json();
@@ -67,46 +70,68 @@ async function runTribunal() {
   console.log(`CASE: ${chargeSheet.title} (ID: ${chargeSheet.case_id})`);
   console.log('====================================================\n');
 
-  console.log('[System] Querying OpenRouter for live free models...');
   const activeModel = await getDynamicFreeModel();
   console.log(`[System] Auto-selected available model: ${activeModel}\n`);
 
-  const caseContext = `
+  const baseContext = `
 Canonical Facts:
 ${chargeSheet.agreed_facts.map((f, i) => `${i + 1}.${f}`).join('\n')}
+Issue for Judgment: ${chargeSheet.question_for_judgment.issue}
+`;
 
-Issue for Judgment:
-${chargeSheet.question_for_judgment.issue}
+  // --- PHASE 1: REPRESENTATIVES ARGUE ---
+  console.log('--- PHASE 1: REPRESENTATIVE ARGUMENTS ---');
+  const repArguments = {};
+  const reps = ['jon', 'tyrion', 'daenerys', 'grey_worm'];
+  
+  for (const rep of reps) {
+    console.log(`[Summoning Representative] ${rep.toUpperCase()}...`);
+    try {
+      repArguments[rep] = await callOpenRouter(prompts[rep], baseContext + "\nState your position briefly.", activeModel);
+    } catch (err) {
+      repArguments[rep] = "Failed to provide argument due to error.";
+    }
+    await sleep(2000);
+  }
 
-Requirement: State whether the act is "justified" or "not justified" and provide your judicial legal reasoning in your distinct judicial methodology.
+  // --- PHASE 2: JUDGES DELIBERATE ---
+  console.log('\n--- PHASE 2: JUDICIAL DELIBERATION ---');
+  const judicialContext = `
+${baseContext}
+
+Arguments Presented by Representatives:
+- Jon Snow: ${repArguments.jon}
+- Tyrion Lannister: ${repArguments.tyrion}
+- Daenerys Targaryen: ${repArguments.daenerys}
+- Grey Worm: ${repArguments.grey_worm}
+
+Requirement: Based on the facts and arguments above, state whether the act is "justified" or "not justified" and provide your judicial legal reasoning.
 `;
 
   const tribunalResults = {};
+  const judges = ['barak', 'elon', 'shamgar'];
 
-  for (const [judgeKey, promptText] of Object.entries(prompts)) {
-    console.log(`[Deliberating] Summoning Judge: ${judgeKey.toUpperCase()}...`);
+  for (const judge of judges) {
+    console.log(`[Summoning Judge] ${judge.toUpperCase()}...`);
     try {
-      const reasoning = await callOpenRouter(promptText, caseContext, activeModel);
-      tribunalResults[judgeKey] = {
+      const reasoning = await callOpenRouter(prompts[judge], judicialContext, activeModel);
+      tribunalResults[judge] = {
         verdict: reasoning.toLowerCase().includes('not justified') ? 'not justified' : 'justified',
         reasoning: reasoning
       };
     } catch (err) {
-      console.error(`Error querying ${judgeKey}:`, err.message);
-      tribunalResults[judgeKey] = {
-        verdict: 'error',
-        reasoning: err.message
-      };
+      tribunalResults[judge] = { verdict: 'error', reasoning: err.message };
     }
-    await sleep(2500); // 2.5 second delay to avoid rate limits
+    await sleep(2000);
   }
 
+  // --- STRICT TRI-VERDICT PRESENTATION ---
   console.log('\n====================================================');
   console.log('           TRI-VERDICT TRIBUNAL RECORD              ');
   console.log('  (Strict Non-Merging Protocol: Opinions Stand Alone) ');
   console.log('====================================================\n');
 
-  ['barak', 'elon', 'shamgar'].forEach((judge) => {
+  judges.forEach((judge) => {
     console.log(`--- [OPINION OF JUDGE ${judge.toUpperCase()}] ---`);
     console.log(`Verdict   : ${tribunalResults[judge].verdict.toUpperCase()}`);
     console.log(`Reasoning :\n${tribunalResults[judge].reasoning}\n`);
